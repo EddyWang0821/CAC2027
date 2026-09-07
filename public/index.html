@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relay</title>
+<style>
+  :root {
+    --paper: #F7F4EC;
+    --ink: #23262B;
+    --ink-soft: #5B5F66;
+    --line: #D9D2C1;
+    --urgent: #B23A2E;
+    --watch: #C1762B;
+    --calm: #3F6E5F;
+    --card: #FFFFFF;
+    --serif: 'Source Serif 4', Georgia, serif;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+  }
+  .wordmark {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .wordmark.small { font-size: 20px; }
+  .wordmark span { color: var(--calm); }
+  .tagline {
+    font-size: 12px;
+    color: var(--ink-soft);
+    max-width: 130px;
+    text-align: right;
+    line-height: 1.35;
+  }
+  .field-label {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+    display: block;
+  }
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--card);
+    font-family: var(--sans);
+    font-size: 15px;
+    margin-bottom: 20px;
+    color: var(--ink);
+  }
+  .dropzone {
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+    margin-bottom: 16px;
+  }
+  .dropzone:hover { border-color: var(--calm); }
+  .dropzone.has-image { padding: 0; overflow: hidden; }
+  .dropzone img { width: 100%; display: block; max-height: 280px; object-fit: cover; }
+  .dropzone .hint {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .dropzone .hint strong { color: var(--ink); display: block; margin-bottom: 4px; font-size: 15px; }
+  input[type=file] { display: none; }
+  button.primary {
+    width: 100%;
+    padding: 13px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  button.primary:disabled { opacity: 0.4; cursor: default; }
+  button.ghost {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    color: var(--ink-soft);
+    border: none;
+    font-family: var(--sans);
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .status {
+    font-size: 14px;
+    color: var(--ink-soft);
+    text-align: center;
+    padding: 20px 0;
+  }
+  .result { margin-top: 24px; }
+  .urgency-banner {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .urgency-banner.urgent { background: #FBE9E6; color: var(--urgent); }
+  .urgency-banner.watch { background: #FBF0E1; color: var(--watch); }
+  .urgency-banner.calm { background: #E7F0EB; color: var(--calm); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .quality-banner {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    background: #FBF0E1;
+    color: var(--watch);
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .card .kicker {
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  .card .doctype {
+    font-family: var(--serif);
+    font-size: 19px;
+    margin-bottom: 2px;
+  }
+  .card .keyline {
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 14px;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 4px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab.active { color: var(--ink); border-bottom-color: var(--calm); font-weight: 600; }
+  .explain-text {
+    font-size: 15.5px;
+    line-height: 1.55;
+    margin-bottom: 12px;
+  }
+  .respond-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    background: var(--paper);
+    padding: 10px 12px;
+    border-radius: 6px;
+  }
+  .respond-text .lbl { font-size: 11px; color: var(--ink-soft); display: block; margin-bottom: 4px; }
+  .draft-card { margin-top: 14px; }
+  .draft-card .draft-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .draft-card h3 {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .method-chip {
+    font-size: 11px;
+    color: var(--calm);
+    background: #E7F0EB;
+    padding: 3px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .draft-text {
+    font-size: 14.5px;
+    line-height: 1.55;
+    background: var(--paper);
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+  }
+  .copy-btn {
+    font-size: 12px;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .copy-btn:hover { border-color: var(--calm); color: var(--calm); }
+  .copy-btn.copied { color: var(--calm); border-color: var(--calm); }
+
+  /* Glossary nav pill (main view) */
+  .glossary-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+    margin-bottom: 22px;
+  }
+  .glossary-nav:hover { border-color: var(--calm); }
+  .glossary-nav .label { display: flex; align-items: center; gap: 8px; }
+  .glossary-nav .chevron { color: var(--ink-soft); font-size: 13px; }
+  .glossary-badge {
+    background: var(--calm);
+    color: var(--paper);
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+  }
+
+  /* Glossary page */
+  .glossary-page-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+  }
+  .back-btn {
+    background: transparent;
+    border: none;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    cursor: pointer;
+    padding: 4px 0;
+    flex-shrink: 0;
+  }
+  .back-btn:hover { color: var(--calm); }
+  .search-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--card);
+    font-family: var(--sans);
+    font-size: 15px;
+    margin-bottom: 14px;
+    color: var(--ink);
+  }
+  .search-input:focus { outline: none; border-color: var(--calm); }
+  .glossary-section h3 {
+    font-family: var(--serif);
+    font-size: 16px;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .glossary-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .glossary-item:last-child { border-bottom: none; }
+  .glossary-term-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 3px;
+  }
+  .glossary-term { font-weight: 600; font-size: 14.5px; }
+  .lang-chip {
+    font-size: 10.5px;
+    color: var(--ink-soft);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 1px 7px;
+    border-radius: 20px;
+  }
+  .glossary-def { font-size: 13.5px; color: var(--ink-soft); line-height: 1.45; }
+  .empty-glossary { font-size: 13px; color: var(--ink-soft); padding: 10px 0; }
+  .error-box {
+    background: #FBE9E6;
+    color: var(--urgent);
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="mainView">
+  <header>
+    <div class="wordmark">Rel<span>ay</span></div>
+    <div class="tagline">read it once, explain it twice</div>
+  </header>
+
+  <button class="glossary-nav" id="openGlossaryBtn" type="button">
+    <span class="label">Family glossary <span class="glossary-badge" id="glossaryBadge">0</span></span>
+    <span class="chevron">View all ›</span>
+  </button>
+
+  <label class="field-label" for="lang">Explain to family in</label>
+  <select id="lang">
+    <option value="Spanish" data-code="es-ES">Spanish</option>
+    <option value="Vietnamese" data-code="vi-VN">Vietnamese</option>
+    <option value="Mandarin Chinese" data-code="zh-CN">Mandarin Chinese</option>
+    <option value="Tagalog" data-code="fil-PH">Tagalog</option>
+    <option value="Arabic" data-code="ar-SA">Arabic</option>
+    <option value="Korean" data-code="ko-KR">Korean</option>
+    <option value="Haitian Creole" data-code="fr-HT">Haitian Creole</option>
+    <option value="Portuguese" data-code="pt-BR">Portuguese</option>
+    <option value="Russian" data-code="ru-RU">Russian</option>
+    <option value="French" data-code="fr-FR">French</option>
+  </select>
+
+  <label class="field-label">The document</label>
+  <div class="dropzone" id="dropzone">
+    <div class="hint" id="hint">
+      <strong>Tap to add a photo</strong>
+      A bill, letter, notice, or form
+    </div>
+    <img id="preview" style="display:none;">
+  </div>
+  <input type="file" id="fileInput" accept="image/*" capture="environment">
+
+  <button class="primary" id="analyzeBtn" disabled>Analyze document</button>
+  <button class="ghost" id="resetBtn" style="display:none;">Start over</button>
+
+  <div id="statusArea"></div>
+  <div id="resultArea"></div>
+</div>
+
+<div class="wrap" id="glossaryView" style="display:none;">
+  <div class="glossary-page-header">
+    <button class="back-btn" id="backBtn" type="button">‹ Back</button>
+    <div class="wordmark small">Family <span>glossary</span></div>
+  </div>
+
+  <input type="text" class="search-input" id="glossarySearch" placeholder="Search terms…">
+
+  <div class="tabs" id="glossaryModeTabs">
+    <div class="tab active" data-mode="en">English</div>
+    <div class="tab" data-mode="translated">Family language</div>
+  </div>
+
+  <div class="glossary-section">
+    <div id="glossaryList"></div>
+  </div>
+</div>
+
+<script>
+const mainView = document.getElementById('mainView');
+const glossaryView = document.getElementById('glossaryView');
+const openGlossaryBtn = document.getElementById('openGlossaryBtn');
+const backBtn = document.getElementById('backBtn');
+const glossaryBadge = document.getElementById('glossaryBadge');
+const glossarySearch = document.getElementById('glossarySearch');
+const glossaryModeTabs = document.getElementById('glossaryModeTabs');
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const preview = document.getElementById('preview');
+const hint = document.getElementById('hint');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const resetBtn = document.getElementById('resetBtn');
+const statusArea = document.getElementById('statusArea');
+const resultArea = document.getElementById('resultArea');
+const langSelect = document.getElementById('lang');
+const glossaryList = document.getElementById('glossaryList');
+
+const GLOSSARY_KEY = 'relay-family-glossary';
+
+let currentImageBase64 = null;
+let currentMediaType = null;
+let glossary = loadGlossary();
+let glossaryMode = 'en'; // 'en' | 'translated'
+
+// ---------------------------------------------------------------------
+// View switching
+// ---------------------------------------------------------------------
+function openGlossary() {
+  mainView.style.display = 'none';
+  glossaryView.style.display = 'block';
+  glossarySearch.value = '';
+  renderGlossary();
+  window.scrollTo(0, 0);
+  glossarySearch.focus();
+}
+
+function closeGlossary() {
+  glossaryView.style.display = 'none';
+  mainView.style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+openGlossaryBtn.addEventListener('click', openGlossary);
+backBtn.addEventListener('click', closeGlossary);
+
+glossaryModeTabs.addEventListener('click', (e) => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  glossaryModeTabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  glossaryMode = tab.dataset.mode;
+  renderGlossary();
+});
+
+glossarySearch.addEventListener('input', () => renderGlossary());
+
+// ---------------------------------------------------------------------
+// Upload flow
+// ---------------------------------------------------------------------
+dropzone.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  currentMediaType = file.type;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    currentImageBase64 = evt.target.result.split(',')[1];
+    preview.src = evt.target.result;
+    preview.style.display = 'block';
+    hint.style.display = 'none';
+    dropzone.classList.add('has-image');
+    analyzeBtn.disabled = false;
+  };
+  reader.readAsDataURL(file);
+});
+
+resetBtn.addEventListener('click', () => {
+  currentImageBase64 = null;
+  preview.style.display = 'none';
+  hint.style.display = 'block';
+  dropzone.classList.remove('has-image');
+  analyzeBtn.disabled = true;
+  resetBtn.style.display = 'none';
+  resultArea.innerHTML = '';
+  statusArea.innerHTML = '';
+  fileInput.value = '';
+});
+
+// ---------------------------------------------------------------------
+// Glossary storage — each term now also remembers which language it was
+// learned in ("lang"), so the glossary page can label it correctly even
+// if the family-language dropdown gets changed later.
+// ---------------------------------------------------------------------
+function loadGlossary() {
+  try {
+    const raw = localStorage.getItem(GLOSSARY_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed;
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveGlossary() {
+  localStorage.setItem(GLOSSARY_KEY, JSON.stringify(glossary));
+  glossaryBadge.textContent = Object.keys(glossary).length;
+}
+
+function renderGlossary() {
+  const query = glossarySearch.value.trim().toLowerCase();
+  const allTerms = Object.keys(glossary);
+
+  glossaryBadge.textContent = allTerms.length;
+
+  if (allTerms.length === 0) {
+    glossaryList.innerHTML = '<p class="empty-glossary">Terms your family has learned will collect here, explained the same way every time.</p>';
+    return;
+  }
+
+  const filtered = allTerms.filter(term => {
+    if (!query) return true;
+    const entry = glossary[term];
+    return term.toLowerCase().includes(query)
+      || (entry.en || '').toLowerCase().includes(query)
+      || (entry.translated || '').toLowerCase().includes(query);
+  });
+
+  if (filtered.length === 0) {
+    glossaryList.innerHTML = `<p class="empty-glossary">No terms match "${escapeHtml(glossarySearch.value.trim())}".</p>`;
+    return;
+  }
+
+  glossaryList.innerHTML = filtered.sort((a, b) => a.localeCompare(b)).map(term => {
+    const entry = glossary[term];
+    const text = glossaryMode === 'en' ? entry.en : (entry.translated || entry.en);
+    const chip = glossaryMode === 'translated' ? `<span class="lang-chip">${escapeHtml(entry.lang || 'family language')}</span>` : '';
+    return `
+      <div class="glossary-item">
+        <div class="glossary-term-row">
+          <span class="glossary-term">${escapeHtml(term)}</span>
+          ${chip}
+        </div>
+        <div class="glossary-def">${escapeHtml(text)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : str;
+  return div.innerHTML;
+}
+
+// ---------------------------------------------------------------------
+// Analyze flow
+// ---------------------------------------------------------------------
+async function callBackend() {
+  const response = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image_base64: currentImageBase64,
+      media_type: currentMediaType,
+      target_lang: langSelect.value,
+      known_terms: Object.keys(glossary)
+    })
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Something went wrong on the server.');
+  }
+  return data;
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!currentImageBase64) return;
+  analyzeBtn.disabled = true;
+  resultArea.innerHTML = '';
+  statusArea.innerHTML = '<p class="status">Reading the document…</p>';
+
+  const targetLang = langSelect.value;
+
+  try {
+    const result = await callBackend();
+    statusArea.innerHTML = '';
+    renderResult(result, targetLang);
+
+    if (result.glossary && result.glossary.length) {
+      result.glossary.forEach(g => {
+        glossary[g.term] = { en: g.plain_en, translated: g.plain_translated, lang: targetLang };
+      });
+      saveGlossary();
+    }
+
+    resetBtn.style.display = 'block';
+  } catch (err) {
+    console.error(err);
+    statusArea.innerHTML = '';
+    resultArea.innerHTML = `<div class="error-box">${escapeHtml(err.message)}</div>`;
+    analyzeBtn.disabled = false;
+  }
+});
+
+function renderResult(r, targetLang) {
+  const urgencyLabel = { urgent: 'Needs attention soon', watch: 'Worth a closer look', calm: 'Nothing urgent' };
+  const methodLabel = {
+    call: 'Phone call', email: 'Email', portal_message: 'Online portal message',
+    mail: 'Mail a letter', in_person: 'In person'
+  };
+
+  const qualityWarning = r.needs_clearer_photo
+    ? `<div class="quality-banner">⚠️ ${escapeHtml(r.quality_note || "This photo may be too unclear to read accurately — consider retaking it.")}</div>`
+    : '';
+
+  const draft = r.draft_reply || {};
+  const draftHtml = draft.needed
+    ? `
+      <div class="card draft-card">
+        <div class="draft-head">
+          <h3>Suggested reply</h3>
+          ${draft.method ? `<span class="method-chip">${escapeHtml(methodLabel[draft.method] || draft.method)}</span>` : ''}
+        </div>
+        <div class="draft-text" id="draftText">${escapeHtml(draft.en)}</div>
+        <button class="copy-btn" id="copyDraftBtn" type="button">Copy text</button>
+      </div>
+    `
+    : '';
+
+  resultArea.innerHTML = `
+    <div class="result">
+      <div class="urgency-banner ${r.urgency}"><span class="dot"></span>${escapeHtml(urgencyLabel[r.urgency] || r.urgency)}</div>
+      ${qualityWarning}
+      <div class="card">
+        <div class="kicker">Document type</div>
+        <div class="doctype">${escapeHtml(r.document_type)}</div>
+        <div>${escapeHtml(r.one_line_summary)}</div>
+        <div class="keyline"><strong>What matters most:</strong> ${escapeHtml(r.key_line)}</div>
+        ${r.deadline ? `<div class="keyline"><strong>Deadline:</strong> ${escapeHtml(r.deadline)}</div>` : ''}
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-tab="en">For you</div>
+        <div class="tab" data-tab="translated">For family (${escapeHtml(targetLang)})</div>
+      </div>
+      <div class="card" id="explainCard">
+        <p class="explain-text" id="explainText">${escapeHtml(r.explanation_en)}</p>
+        <div class="respond-text"><span class="lbl">Next step</span>${escapeHtml(r.next_step_en)}</div>
+      </div>
+
+      ${draftHtml}
+    </div>
+  `;
+
+  const explainText = document.getElementById('explainText');
+  const respondText = resultArea.querySelector('.respond-text');
+  const tabs = resultArea.querySelectorAll('.tab');
+  const draftText = document.getElementById('draftText');
+  const copyDraftBtn = document.getElementById('copyDraftBtn');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const activeTab = tab.dataset.tab;
+      if (activeTab === 'en') {
+        explainText.textContent = r.explanation_en;
+        respondText.innerHTML = `<span class="lbl">Next step</span>${escapeHtml(r.next_step_en)}`;
+        if (draftText) draftText.textContent = draft.en;
+      } else {
+        explainText.textContent = r.explanation_translated;
+        respondText.innerHTML = `<span class="lbl">Next step</span>${escapeHtml(r.next_step_translated)}`;
+        if (draftText) draftText.textContent = draft.translated;
+      }
+    });
+  });
+
+  if (copyDraftBtn) {
+    copyDraftBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(draftText.textContent);
+        copyDraftBtn.textContent = 'Copied ✓';
+        copyDraftBtn.classList.add('copied');
+        setTimeout(() => {
+          copyDraftBtn.textContent = 'Copy text';
+          copyDraftBtn.classList.remove('copied');
+        }, 1800);
+      } catch (e) {
+        // Clipboard API unavailable (e.g. insecure context) — fail silently, text is still selectable.
+      }
+    });
+  }
+}
+
+// Initial paint
+saveGlossary(); // just to sync the badge count on load, harmless no-op write if unchanged
+renderGlossary();
+</script>
+</body>
+</html>
