@@ -1,58 +1,49 @@
 # Relay
 
-## Run it locally
+In millions of immigrant families, the family lawyer is 14 years old.
 
-1. Get at least one API key — see "Provider chain" below for options. Gemini is the simplest to start with: go to aistudio.google.com/apikey, sign in with a Google account, and create a key. No credit card needed for the free tier.
-2. Install dependencies:
-   ```
-   npm install
-   ```
-3. Add your key(s):
-   ```
-   cp .env.example .env
-   ```
-   Open `.env` and fill in whichever provider(s) you got keys for.
-4. Start the server:
-   ```
-   npm start
-   ```
-5. Open `http://localhost:3000` in your browser.
+Try it live: cac2027.onrender.com (the free server sleeps after a while with no traffic, so the first load can take 30 to 60 seconds to wake up)
 
-## Deploy it so anyone can use it (for your CAC submission)
+## The problem
 
-You need judges to be able to open a real URL, not run something locally. Render's free tier is the simplest path for a plain Node/Express app like this:
+If you grew up in an immigrant household, you've probably lived some version of this. Your parent hands you a letter from the insurance company, the school, the landlord, or the IRS, and looks at you to explain it. It isn't always about English fluency. The language of institutions is its own dialect. Deductibles. Adverse determinations. Notices of intent to lapse. Even fluent adults trip over this stuff. Now try doing it cold, out loud, in a second language, as a kid, while your parent's rent or health coverage depends on you getting it right.
 
-1. Push this folder to a GitHub repo.
-2. Go to render.com, sign in with GitHub, and create a new "Web Service" from that repo.
-3. Build command: `npm install`. Start command: `npm start`.
-4. Under "Environment," add whichever of `GEMINI_API_KEYS`, `GROQ_API_KEY`, or `OPENROUTER_API_KEY` you're using, with your key(s) as the value — never commit your `.env` file or put a key in code.
-5. Deploy. Render gives you a public URL like `relay-yourname.onrender.com`.
+This is called child language brokering, and it's common enough to be well documented. It's also barely designed for. Every translation app on the market is built for a tourist ordering food in Rome. None of them are built for a teenager standing in the kitchen holding three pages of insurance legalese, trying to figure out what actually matters and how to say it in Spanish without getting it wrong.
 
-Free-tier Render services sleep after inactivity and take ~30 seconds to wake up on the first request — worth knowing so it doesn't look broken if a judge tries it cold. Mention that in your demo or submission notes.
+## What Relay does
 
-## Provider chain (fallbacks so a demo never just dies)
+Point your phone's camera at a document. Relay doesn't just translate it. It sorts through it the way a calm, patient adult would:
 
-Every "analyze" request tries a chain of providers, in order, and only fails if *all* of them fail. This is what protects you if a key runs out of its daily quota, a model is temporarily overloaded, or you hit a rate limit mid-demo:
+- What is this, really? A plain-English read on what kind of document it is and why it exists.
+- Does it matter right now? An urgent, worth-a-look, or nothing-urgent flag, so a scary envelope doesn't cause panic when it's actually routine.
+- What's the one thing that matters? The amount owed, the reason for a denial, the actual ask, pulled out from three paragraphs of filler.
+- Is there a deadline? Flagged directly instead of buried in paragraph four.
+- How do I explain this out loud? A short explanation in plain English and in the family's language, written to be spoken to a parent, not read like a legal memo.
+- What do I actually say or send back? If a reply is needed, Relay drafts one. A real email, portal message, or phone script, in both languages, not a one-line suggestion.
+- What if I don't understand a word? Jargon gets added to a running family glossary, so "deductible" gets explained the same way every time it comes up, across every document, for as long as the family needs it.
 
-```
-Gemini key 1 -> Gemini key 2 -> ... -> Groq -> OpenRouter
-```
+## Why this doesn't already exist
 
-You only need to fill in one section of `.env` to run the app at all — add more for redundancy. All three have a genuinely free tier with no credit card:
+Every existing translation tool treats the parent as the user and the document as the whole problem. Relay treats the kid as the user, and the work of unpaid interpretation as the actual problem. That's the idea behind it. It's why the app looks less like Google Translate and more like a friend who already read the letter and is about to walk you through it.
 
-- **Gemini** (`GEMINI_API_KEYS`) — aistudio.google.com/apikey. You can list several keys separated by commas (e.g. from different Google accounts); Relay tries them in order. This is the easiest way to get "several API key fallbacks" without touching any other provider.
-- **Groq** (`GROQ_API_KEY`) — console.groq.com/keys. Free, no card, fast, and its rate limits reset daily. Its vision-capable model rotates fairly often (currently `qwen/qwen3.6-27b`, set via `GROQ_MODEL`) — if it stops working, check console.groq.com/docs/vision for the current one.
-- **OpenRouter** (`OPENROUTER_API_KEY`) — openrouter.ai/keys. Set `OPENROUTER_MODEL=openrouter/free` (the default): this isn't a single model, it's a router that automatically picks whichever currently-free model on OpenRouter supports image input. That means it keeps working even as individual free models get added or retired, without you ever having to update a model name — the closest thing here to a "free forever" option, though it's still rate-limited (not literally unlimited).
+## How it's built
 
-None of these free tiers is truly unlimited on its own — but chaining a couple of Gemini keys with Groq and OpenRouter behind them means a judge would need to hit *four separate providers'* limits back to back for the app to actually fail. If every provider in the chain fails, the error message returned to the browser tells you which one failed last, which is the one to check first.
+Relay is a small full stack app on purpose: a plain HTML, CSS, and JS frontend, a Node and Express backend, no build step, no database. Easy to read, easy to run, easy to judge.
 
-## A note on free-tier limits and data
+Most of the real engineering effort went into reliability. A Congressional App Challenge demo has to work the moment a judge clicks it, not most of the time. So instead of calling one AI provider and hoping, Relay tries a chain of them: multiple Gemini keys, then Groq, then OpenRouter, all with free tiers, and only reports failure if every one of them fails. There's a short timeout per provider so a stalled one doesn't hang the request, a small cache so repeat testing doesn't burn quota, and basic rate limiting so a public demo link can't get hammered dry before judging even starts.
 
-Free tiers are rate-limited (a cap on requests per minute and/or per day, not unlimited), and providers may use free-tier inputs/outputs to improve their models — worth knowing since you're processing real family documents while testing. Switch to redacted or fake sample documents once you're past your own personal testing.
+The document analysis prompt is built to stay accurate and simple. Short sentences, no invented details, told directly to prioritize instead of trying to capture every clause of a dense legal notice, because whoever reads the output out loud might have limited literacy or no English at all.
 
-## What's not built yet (good to mention as roadmap in your pitch)
+## What's next
 
-- Only one document photo at a time — no multi-page stitching for documents that span several pages.
-- No accounts — the glossary is stored per-browser (`localStorage`), not synced across a family's devices.
-- No offline mode.
-- No read-aloud/listening feature — removed to keep the app focused on the core triage-and-translate flow.
+Relay is scoped down on purpose for this build. Here's what isn't in it yet:
+
+- Multi-page documents. The backend can already read a multi-page letter as one document, but the camera still only takes one photo at a time. Adding an "add another page" flow is the next step.
+- Accounts or syncing. Right now the family glossary lives in one browser's local storage, not shared across a household's devices.
+- Offline mode. Everything currently needs a live connection to an AI provider.
+
+None of this is a mystery to fix. It's scope, kept small enough to finish something solid instead of something sprawling.
+
+## Try it yourself
+
+The fastest way to understand Relay is to use it. Grab a real or redacted bill, notice, or letter, pick a language, and see what comes back. For local setup, deployment, and how the provider fallback works, see docs/DEVELOPMENT.md.
