@@ -61,6 +61,15 @@ const PROVIDER_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS) || 25000;
 // to how long the model takes to respond.
 const MAX_PAGES = Number(process.env.MAX_PAGES) || 6;
 
+// The schema now asks for a fuller bilingual draft_reply on top of the
+// summary/glossary/etc., so dense source documents (long legal letters,
+// itemized bills) can produce a genuinely long JSON response. Weaker
+// fallback models (especially whatever "openrouter/free" happens to
+// route to) are the most likely to run out of budget and get cut off
+// mid-JSON — raise this if you keep seeing "Response was cut off before
+// finishing" even on the terse retry.
+const MAX_OUTPUT_TOKENS = Number(process.env.MAX_OUTPUT_TOKENS) || 3500;
+
 const TERSE_SUFFIX = '\n\nYour previous attempt got cut off before finishing, or was not valid JSON. Be noticeably more concise in every field this time — short sentences, no sub-clauses.';
 
 function buildSystemPrompt(targetLang, knownTerms, pageCount) {
@@ -142,7 +151,7 @@ async function callGemini(apiKey, systemPrompt, images, terse) {
         }
       ],
       generationConfig: {
-        maxOutputTokens: 2560,
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
         responseMimeType: 'application/json' // Gemini enforces valid JSON output directly, no markdown fences to strip
       }
     })
@@ -192,7 +201,7 @@ async function callOpenAICompatible({ baseUrl, apiKey, model, extraHeaders, labe
           ]
         }
       ],
-      max_tokens: 2560,
+      max_tokens: MAX_OUTPUT_TOKENS,
       temperature: 0.3
     })
   });
